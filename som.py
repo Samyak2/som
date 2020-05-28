@@ -30,7 +30,9 @@ class SOM(nn.Module):
             self.sigma = float(sigma)
 
         self.weights = torch.randn(m*n, dim)
-        self.locations = torch.LongTensor(np.array(list(self.neuron_locations())))
+        # self.locations = torch.LongTensor(np.array(list(self.neuron_locations())))
+        xx, yy = np.meshgrid(np.linspace(0, m-1, m), np.linspace(0, n-1, n))
+        self.locations = torch.LongTensor(np.array((xx.ravel(), yy.ravel())).T)
         self.pdist = nn.PairwiseDistance(p=2)
 
     def get_weights(self):
@@ -38,11 +40,6 @@ class SOM(nn.Module):
 
     def get_locations(self):
         return self.locations
-
-    def neuron_locations(self):
-        for i in range(self.m):
-            for j in range(self.n):
-                yield np.array([i, j])
 
     def map_vects(self, input_vects):
         to_return = []

@@ -38,7 +38,7 @@ color_names = \
 data = list()
 for i in range(colors.shape[0]):
     data.append(torch.FloatTensor(colors[i,:]))
- 
+
 #Train a 20x30 SOM with 100 iterations
 n_iter = 100
 som = SOM(m, n, 3, n_iter)
@@ -53,7 +53,7 @@ weights = som.get_weights()
 locations = som.get_locations()
 for i, loc in enumerate(locations):
     centroid_grid[loc[0]].append(weights[i].numpy())
- 
+
 #Get output grid
 image_grid = centroid_grid
 
