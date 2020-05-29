@@ -6,8 +6,6 @@ Much of the code is modified from:
 import torch
 import torch.nn as nn
 import numpy as np
-from torch.autograd import Variable
- 
 
 class SOM(nn.Module):
     """
@@ -44,8 +42,8 @@ class SOM(nn.Module):
     def map_vects(self, input_vects):
         to_return = []
         for vect in input_vects:
-            min_index = min([i for i in range(len(self.weights))],
-                            key=lambda x: np.linalg.norm(vect-self.weights[x]))
+            min_index = min(range(len(self.weights)),
+                            key=lambda x, vect=vect: np.linalg.norm(vect-self.weights[x]))
             to_return.append(self.locations[min_index])
 
         return to_return
@@ -53,21 +51,25 @@ class SOM(nn.Module):
     def forward(self, x, it):
         dists = self.pdist(torch.stack([x for i in range(self.m*self.n)]), self.weights)
         _, bmu_index = torch.min(dists, 0)
-        bmu_loc = self.locations[bmu_index,:]
+        bmu_loc = self.locations[bmu_index, :]
         bmu_loc = bmu_loc.squeeze()
-        
+
         learning_rate_op = 1.0 - it/self.niter
         alpha_op = self.alpha * learning_rate_op
         sigma_op = self.sigma * learning_rate_op
 
+        # dist^2 = (x1-x2)^2 + (y1-y2)^2 + ...
         bmu_distance_squares = torch.sum(torch.pow(self.locations.float() - torch.stack([bmu_loc for i in range(self.m*self.n)]).float(), 2), 1)
-        
+
+        # theta = exp^(-dist^2 / sigma^2)
         neighbourhood_func = torch.exp(torch.neg(torch.div(bmu_distance_squares, sigma_op**2)))
-        
+
         learning_rate_op = alpha_op * neighbourhood_func
 
         learning_rate_multiplier = torch.stack([learning_rate_op[i:i+1].repeat(self.dim) for i in range(self.m*self.n)])
-        delta = torch.mul(learning_rate_multiplier, (torch.stack([x for i in range(self.m*self.n)]) - self.weights))                                         
+        # dW = LR * (X - W)
+        delta = torch.mul(learning_rate_multiplier, (torch.stack([x for i in range(self.m*self.n)]) - self.weights))
+        # W = W + dW
         new_weights = torch.add(self.weights, delta)
         self.weights = new_weights
 
