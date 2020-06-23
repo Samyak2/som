@@ -1,11 +1,5 @@
-"""
-Much of the code is modified from:
-- https://codesachin.wordpress.com/2015/11/28/self-organizing-maps-with-googles-tensorflow/
-"""
-
 import numpy as np
 import torch
-from torch.autograd import Variable
 import matplotlib.pyplot as plt
 
 from som import SOM
@@ -42,6 +36,8 @@ for i in range(colors.shape[0]):
 plt.ion()
 
 def draw_som(som):
+    plt.clf()
+
     #Store a centroid grid for easy retrieval later on
     centroid_grid = [[] for i in range(m)]
     weights = som.get_weights()
@@ -70,11 +66,27 @@ for iter_no in range(n_iter):
     for data_i in data:
         som(data_i, iter_no)
 
-    if iter_no % 5 == 0:
-        draw_som(som)
-        plt.pause(0.0001)
-        plt.clf()
-        print(f"Trained {iter_no} iterations")
-plt.ioff()
-draw_som(som)
-plt.show()
+mapped = som.map_vects(torch.Tensor(colors))
+
+def infer(som, color_rgb):
+    required = som.get_bmu_loc(torch.Tensor(color_rgb))
+
+    dists = som.pdist(torch.stack([required for i in range(len(mapped))]), torch.stack(mapped))
+
+    min_dist, min_dist_index = torch.min(dists, 0)
+
+    color_name = color_names[min_dist_index]
+
+    return float(min_dist), required, color_name
+
+def infer_plot(som, color_rgb):
+    min_dist, bmu_loc, color_name = infer(som, color_rgb)
+
+    draw_som(som)
+
+    plt.text(bmu_loc[1], bmu_loc[0], "INPUT", ha="center", va="center",
+             bbox=dict(facecolor='white', alpha=0.5, lw=0))
+
+    return min_dist, bmu_loc, color_name
+
+print(infer(som, [0.0, 0.0, 0.0]))

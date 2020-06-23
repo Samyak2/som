@@ -48,11 +48,15 @@ class SOM(nn.Module):
 
         return to_return
 
-    def forward(self, x, it):
+    def get_bmu_loc(self, x):
         dists = self.pdist(torch.stack([x for i in range(self.m*self.n)]), self.weights)
         _, bmu_index = torch.min(dists, 0)
         bmu_loc = self.locations[bmu_index, :]
         bmu_loc = bmu_loc.squeeze()
+        return bmu_loc
+
+    def forward(self, x, it):
+        bmu_loc = self.get_bmu_loc(x)
 
         learning_rate_op = 1.0 - it/self.niter
         alpha_op = self.alpha * learning_rate_op
