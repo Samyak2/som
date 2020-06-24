@@ -49,11 +49,15 @@ class SOM(nn.Module):
         return to_return
 
     def get_bmu_loc(self, x):
-        dists = self.pdist(torch.stack([x for i in range(self.m*self.n)]), self.weights)
+        dists = self.get_dists(x)
         _, bmu_index = torch.min(dists, 0)
         bmu_loc = self.locations[bmu_index, :]
         bmu_loc = bmu_loc.squeeze()
         return bmu_loc
+
+    def get_dists(self, x):
+        dists = torch.norm(self.weights - x, dim=1)
+        return dists
 
     def forward(self, x, it):
         bmu_loc = self.get_bmu_loc(x)
@@ -63,16 +67,18 @@ class SOM(nn.Module):
         sigma_op = self.sigma * learning_rate_op
 
         # dist^2 = (x1-x2)^2 + (y1-y2)^2 + ...
-        bmu_distance_squares = torch.sum(torch.pow(self.locations.float() - torch.stack([bmu_loc for i in range(self.m*self.n)]).float(), 2), 1)
+        bmu_distance_squares = torch.sum(torch.pow(self.locations - bmu_loc, 2), 1)
 
         # theta = exp^(-dist^2 / sigma^2)
         neighbourhood_func = torch.exp(torch.neg(torch.div(bmu_distance_squares, sigma_op**2)))
 
         learning_rate_op = alpha_op * neighbourhood_func
 
-        learning_rate_multiplier = torch.stack([learning_rate_op[i:i+1].repeat(self.dim) for i in range(self.m*self.n)])
+        learning_rate_multiplier = learning_rate_op.unsqueeze(-1).expand(-1, self.dim)
+
         # dW = LR * (X - W)
-        delta = torch.mul(learning_rate_multiplier, (torch.stack([x for i in range(self.m*self.n)]) - self.weights))
+        delta = torch.mul(learning_rate_multiplier, x - self.weights)
+
         # W = W + dW
         new_weights = torch.add(self.weights, delta)
         self.weights = new_weights
