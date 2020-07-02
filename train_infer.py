@@ -31,7 +31,8 @@ color_names = \
 
 data = list()
 for i in range(colors.shape[0]):
-    data.append(torch.FloatTensor(colors[i, :]))
+    data.append(colors[i, :])
+data_t = torch.Tensor(data)
 
 plt.ion()
 
@@ -63,8 +64,7 @@ n_iter = 100
 som = SOM(m, n, 3, n_iter)
 for iter_no in range(n_iter):
     #Train with each vector one by one
-    for data_i in data:
-        som(data_i, iter_no)
+    som(data_t, iter_no)
 
 mapped = som.map_vects(torch.Tensor(colors))
 
